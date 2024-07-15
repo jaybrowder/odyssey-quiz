@@ -87,48 +87,55 @@ function buildQuiz() {
         }
 
         output.push(
-            `<div class="question">
-                <h2>Question ${questionNumber + 1}</h2>
-                <p>${questionData.question}</p>
-            </div>
-            <div class="answers">${answers.join('')}</div>`
+            `<div class="question-container">
+                <div class="question">
+                    <h2>Question ${questionNumber + 1}</h2>
+                    <p>${questionData.question}</p>
+                </div>
+                <div class="answers">${answers.join('')}</div>
+                <div class="feedback" id="feedback${questionNumber}"></div>
+            </div>`
         );
     });
 
     quizElement.innerHTML = output.join('');
+
+    // Add event listeners to all radio buttons
+    document.querySelectorAll('input[type="radio"]').forEach(radio => {
+        radio.addEventListener('change', handleAnswerSelection);
+    });
 }
 
-function showResults() {
-    const answerContainers = quizElement.querySelectorAll('.answers');
-    let numCorrect = 0;
+function handleAnswerSelection(e) {
+    const selectedAnswer = e.target;
+    const questionNumber = parseInt(selectedAnswer.name.replace('question', ''));
+    const isCorrect = selectedAnswer.value === quizData[questionNumber].correctAnswer;
 
-    quizData.forEach((questionData, questionNumber) => {
-        const answerContainer = answerContainers[questionNumber];
-        const selector = `input[name=question${questionNumber}]:checked`;
-        const userAnswer = (answerContainer.querySelector(selector) || {}).value;
+    const feedbackElement = document.getElementById(`feedback${questionNumber}`);
+    feedbackElement.textContent = isCorrect ? quizData[questionNumber].feedback.correct : quizData[questionNumber].feedback.incorrect;
+    feedbackElement.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
 
-        const feedbackElement = document.createElement('div');
-        feedbackElement.classList.add('feedback');
-
-        if (userAnswer === questionData.correctAnswer) {
-            numCorrect++;
-            feedbackElement.classList.add('correct');
-            feedbackElement.textContent = questionData.feedback.correct;
-        } else {
-            feedbackElement.classList.add('incorrect');
-            feedbackElement.textContent = questionData.feedback.incorrect;
-        }
-
-        answerContainer.appendChild(feedbackElement);
+    // Disable all radio buttons for this question
+    document.querySelectorAll(`input[name="question${questionNumber}"]`).forEach(radio => {
+        radio.disabled = true;
     });
 
-    resultsElement.innerHTML = `You got ${numCorrect} out of ${quizData.length} questions correct!`;
+    updateResults();
+}
+
+function updateResults() {
+    let numCorrect = 0;
+    quizData.forEach((_, questionNumber) => {
+        const selectedAnswer = document.querySelector(`input[name="question${questionNumber}"]:checked`);
+        if (selectedAnswer && selectedAnswer.value === quizData[questionNumber].correctAnswer) {
+            numCorrect++;
+        }
+    });
+
+    resultsElement.textContent = `You've answered ${numCorrect} out of ${quizData.length} questions correctly!`;
 }
 
 const quizElement = document.getElementById('quiz');
 const resultsElement = document.getElementById('results');
-const submitButton = document.getElementById('submit');
 
 buildQuiz();
-
-submitButton.addEventListener('click', showResults);
